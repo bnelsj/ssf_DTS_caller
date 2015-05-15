@@ -1,5 +1,5 @@
 ALL: 
-	python setup.py build_ext --inplace --include-dirs /net/eichler/vol7/home/psudmant/EEE_Lab/projects/common_code//ssf_DTS_caller/heap/
+	python setup.py build_ext --inplace --include-dirs /net/eichler/vol5/home/bnelsj/src/ssf_DTS_caller/heap/
 	
 	#:/net/eichler/vol7/home/psudmant/EEE_Lab/projects/common_code/ssf_DTS_caller/ssf_DTS_caller/c_edge/ 
 	
