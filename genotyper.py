@@ -749,7 +749,8 @@ class GMM_gt(object):
         for i in xrange(l):
             c = cm.hsv(float(i)/l,1)
             mu = self.gmm.means[i,0]
-            var = self.gmm.covars[i][0][0]
+            #var = self.gmm.covars[i][0][0]
+            var = self.gmm.covars[i]
 
             G_y = mlab.normpdf(G_x, mu, var**.5)*self.gmm.weights[i]
             ax_arr[0].plot(G_x,G_y,color=c)
@@ -1089,8 +1090,7 @@ class GMM_gt(object):
         delta = bic_r-self.min_bic+bic_l-self.min_bic
         return delta
         
-    def get_gts_by_indiv(self):
-        
+    def get_gts_by_indiv(self, correct_for_odd_major = True):
         cp_2_thresh=1.0
         mode_label = int(mode(self.labels)[0][0])
         
@@ -1128,7 +1128,7 @@ class GMM_gt(object):
             labels_to_gt = new_labels_to_gt
        
         ##correct for odd major alleles out of HWE 
-        if (labels_to_gt[mode_label] %2 == 1) and np.sum(indiv_labels==mode_label) >= .5*(indiv_labels.shape[0]):
+        if correct_for_odd_major and (labels_to_gt[mode_label] %2 == 1) and np.sum(indiv_labels==mode_label) >= .5*(indiv_labels.shape[0]):
             d=0
             if self.label_to_mu[mode_label]-labels_to_gt[mode_label]>0 or min(labels_to_gt.values())==0:
                 d=1
@@ -1264,7 +1264,8 @@ def assess_GT_overlaps(gmm):
     ws = []
     for i in xrange(l):
         u = gmm.means[i,0]
-        s = gmm.covars[i][0][0]**.5
+        #s = gmm.covars[i][0][0]**.5
+        s = gmm.covars[i]**.5
         w = gmm.weights[i]
         if w==0: continue
         us.append(u)
@@ -1744,7 +1745,7 @@ class genotyper(object):
         n_components = len(init_means)
         #gmm = mixture.GMM(n_components, 'spherical')
         #gmm = mixture.GMM(n_components, 'diag')
-        gmm = mixture.GMM(n_components, 'spherical', min_covar=min_covar)
+        gmm = mixture.GMM(n_components, 'spherical', min_covar=min_covar,n_iter=n_iter, init_params='')
         gmm.means = np.reshape(np.array(init_means),(len(init_means),1))
         gmm.weights = np.array(init_weights)
         
@@ -1756,7 +1757,8 @@ class genotyper(object):
         #gmm.fit(X, n_iter=n_iter, init_params='c')
         #gmm.fit(X, n_iter=n_iter, init_params='cmw')
         #gmm.fit(X, n_iter=n_iter, init_params='c')
-        gmm.fit(X, n_iter=n_iter, init_params='')
+        #gmm.fit(X, n_iter=n_iter, init_params='')
+        gmm.fit(X)
         
         labels = gmm.predict(X)
         
@@ -1770,7 +1772,18 @@ class genotyper(object):
 
         return gmm, labels, aic 
     
+    def simple_GMM_genotype(self, X, max_cp=12):
+        
+        mus = np.mean(X,1)
+        if np.amax(mus)>max_cp:
+            mus = np.around(mus)
+            gts_by_indiv = {self.indivs[i]:int(mus[i]) for i in xrange(mus.shape[0])}
+        else:
+            gX = self.GMM_genotype(X)
+            gts_by_indiv, gts_to_label, labels_to_gt = gX.get_gts_by_indiv()
 
+        return gts_by_indiv
+        
     def GMM_genotype(self, X, include_indivs = None, FOUT = None, overload_indivs = None):
         """
         GMM genotyping
